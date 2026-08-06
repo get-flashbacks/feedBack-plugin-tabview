@@ -123,5 +123,4 @@ def test_conversion_error_does_not_leak_exception_text_to_client(build_app, monk
 
     assert resp.status_code == 500
     body = resp.body.decode() if isinstance(resp.body, (bytes, bytearray)) else resp.body
-    assert secret_detail not in body
-    assert "server logs" in body.lower()
+    assert body == "Conversion error — see server logs for details."
