@@ -6,10 +6,19 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.responses import Response
 
-# Ensure the song lib is importable
-_lib = str(Path(__file__).resolve().parent.parent.parent / "lib")
-if _lib not in sys.path:
-    sys.path.insert(0, _lib)
+# Ensure the core `lib` package is importable — insert its PARENT (the core
+# repo root), not `lib` itself. Inserting `lib` directly would make `import
+# sloppak` resolve as a bare top-level name, caching into sys.modules under
+# the generic key "sloppak" — the same collision class the core plugin-system
+# guide warns about for any plugin shipping a same-named top-level module
+# (whichever loads first wins, and there is no per-plugin namespacing for a
+# bare top-level import). Inserting the repo root instead lets `sloppak` be
+# imported qualified as `lib.sloppak`, matching the pattern the editor
+# plugin already uses (`from lib import sloppak as sloppak_mod`) — `lib` has
+# no `__init__.py` but still resolves as a PEP 420 namespace package.
+_core_root = str(Path(__file__).resolve().parent.parent.parent)
+if _core_root not in sys.path:
+    sys.path.insert(0, _core_root)
 
 # `sloppak` is loaded lazily inside the song-package branch below — older
 # cores ship without lib/sloppak.py, and a top-level import here would
@@ -69,7 +78,7 @@ def setup(app: FastAPI, context: dict):
             )
             if is_pak:
                 try:
-                    import sloppak as sloppak_mod
+                    from lib import sloppak as sloppak_mod
                 except ImportError:
                     return Response(
                         "Sloppak support requires a newer feedBack core (lib/sloppak.py). "
@@ -87,7 +96,13 @@ def setup(app: FastAPI, context: dict):
                 "Only .feedpak / .sloppak songs are supported",
                 status_code=400,
             )
-        except Exception as e:
+        except Exception:
             import traceback
+            # Full detail goes to the server's own log; the client only ever
+            # sees a generic message. str(e) here could include internal
+            # filesystem paths / library stack detail (e.g. from a parser
+            # deep inside sloppak or rs2gp), which is minor info disclosure
+            # to anyone able to reach this unauthenticated route with a
+            # crafted .feedpak/.sloppak.
             traceback.print_exc()
-            return Response(f"Conversion error: {e}", status_code=500)
+            return Response("Conversion error — see server logs for details.", status_code=500)
