@@ -35,6 +35,7 @@ Restart feedBack. The plugin loads automatically.
 
 - **Server**: `pyguitarpro` (already included in feedBack's requirements)
 - **Client**: alphaTab is loaded from CDN on first use
+- **Plugin**: `feedback-plugin-splitscreen` (`window.slopsmithSplitscreen`) — verified present as of splitscreen **v1.14.5**; feature-detected, not a hard requirement (tabview works standalone without splitscreen installed). Used only to detect per-panel state under splitscreen. No manifest-level enforcement exists for this dependency — see [feedback-plugin-splitscreen#47](https://github.com/get-flashbacks/feedback-plugin-splitscreen/issues/47).
 
 ## How it works
 
